@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Expectations Map</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+    h1 {
+        margin-bottom: 20px;
+    }
+    label {
+        font-weight: bold;
+    }
+    .tabs {
+        display: flex;
+        margin-bottom: 20px;
+    }
+    .tab {
+        padding: 10px 20px;
+        cursor: pointer;
+        background-color: #f0f0f0;
+        margin-right: 10px;
+        border-radius: 4px;
+        transition: background-color 0.2s ease;
+    }
+    .tab.active {
+        background-color: #ddd;
+    }
+    .container {
+        display: none;
+    }
+    .container.active {
+        display: block;
+    }
+    .map-grid {
+        display: grid;
+        grid-template-columns: 100px repeat(3, 1fr); /* 3 роли + колонка для FROM */
+        grid-template-rows: 100px repeat(3, 1fr);    /* 3 роли + строка для TO */
+        gap: 1px;
+        position: relative;
+    }
+.map-grid div {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    flex-direction: column;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+    min-height: 100px;
+    padding: 5px;
+    overflow: visible;
+    position: relative; /* Это позволит позиционировать иконку внутри карточки */
+}
+
+
+    .map-grid .header {
+        font-weight: bold;
+        background-color: #e0e0e0;
+    }
+    .map-grid .diagonal {
+        background-color: #dcdcdc;
+    }
+    .map-grid .empty {
+        background-color: #ffffff;
+    }
+.map-card {
+    width: 90%;
+    max-width: 50ch;
+    margin: 2px 0;
+    padding: 5px;
+    text-align: center;
+    border-radius: 5px;
+    color: #000;
+    white-space: normal;
+    word-wrap: break-word;
+    word-break: break-word;
+    box-sizing: border-box;
+    position: relative;
+}
+.map-card .comment-icon {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 12px;
+    color: #888;
+}
+    .map-card.green { background-color: #a8e6a8; }
+    .map-card.yellow { background-color: #fff49c; color: #000; }
+    .map-card.red { background-color: #f8a8a8; }
+    .map-card.gray { background-color: #e0e0e0; }
+    
+/* Обновим поведение подсказок (тултипов) для карточек */
+.map-card[data-comment]:hover::after {
+    content: attr(data-comment); /* Только для карточек с комментарием */
+    position: absolute;
+    background-color: #333;
+    color: #fff;
+    padding: 5px;
+    border-radius: 5px;
+    font-size: 12px;
+    white-space: nowrap;
+    z-index: 100;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 1;
+}
+  
+  button {
+    padding: 10px 15px;
+    background-color: #f0f0f0;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    font-size: 14px;
+}
+
+button:hover {
+    background-color: #ddd;
+}
+
+button:active {
+    background-color: #ccc;
+}
+
+/* Стиль для активной кнопки, соответствующий цвету */
+.green-btn.button-active {
+    background-color: #a8e6a8; /* Зелёный для Agree */
+    border: 2px solid #5ca85c;
+}
+
+.yellow-btn.button-active {
+    background-color: #fff49c; /* Жёлтый для Discuss */
+    border: 2px solid #e6b800;
+}
+
+.red-btn.button-active {
+    background-color: #f8a8a8; /* Красный для Disagree */
+    border: 2px solid #d9534f;
+}
+</style>
+</head>
+<body>
+
+<h1>Role Expectations Map</h1>
+
+<!-- Выбор роли вне вкладок -->
+<label for="roleSelectShare">Выберите вашу роль:</label>
+<select id="roleSelectShare"></select>
+
+<!-- Кнопка для очистки всех данных -->
+<button id="clearDataButton">Очистить данные</button>
+
+<!-- Вкладки -->
+<div class="tabs">
+    <div class="tab active" data-tab="share">Поделиться ожиданием</div>
+    <div class="tab" data-tab="received">Полученные ожидания</div>
+    <div class="tab" data-tab="map">Карта ожиданий</div>
+</div>
+
+<!-- Контейнеры для контента каждой вкладки -->
+<div id="share" class="container active">
+    <h2>Поделиться ожиданием</h2>
+    <div id="addExpectationsContainer"></div>
+</div>
+
+<div id="received" class="container">
+    <h2>Полученные ожидания</h2>
+    <div id="viewExpectationsContainer"></div> <!-- Контейнер для полученных ожиданий -->
+</div>
+
+<div id="map" class="container">
+    <h2>Карта ожиданий</h2>
+    <div class="map-grid">
+        <!-- Угол карты (пустая ячейка) -->
+        <div class="header"></div>
+        <!-- Заголовки столбцов (TO) -->
+        <div class="header">Developer</div>
+        <div class="header">Sales</div>
+        <div class="header">Product Manager</div>
+        
+        <!-- Строки (FROM) и ожидания -->
+        <!-- Row for Developer -->
+        <div class="header">Developer</div>
+        <div class="diagonal" id="developer-developer"></div> <!-- Self expectations -->
+        <div class="empty" id="developer-sales"></div>
+        <div class="empty" id="developer-product-manager"></div>
+
+        <!-- Row for Sales -->
+        <div class="header">Sales</div>
+        <div class="empty" id="sales-developer"></div>
+        <div class="diagonal" id="sales-sales"></div> <!-- Self expectations -->
+        <div class="empty" id="sales-product-manager"></div>
+
+        <!-- Row for Product Manager -->
+        <div class="header">Product Manager</div>
+        <div class="empty" id="product-manager-developer"></div>
+        <div class="empty" id="product-manager-sales"></div>
+        <div class="diagonal" id="product-manager-product-manager"></div> <!-- Self expectations -->
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
